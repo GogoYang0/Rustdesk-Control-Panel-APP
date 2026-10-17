@@ -1,0 +1,75 @@
+name: ci
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.22.x"
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.22.x"
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.22.x"
+          cache: npm
+      - run: npm ci
+      - run: npm test -- --ci
+
+  doctor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.22.x"
+          cache: npm
+      - run: npm ci
+      - run: npx expo-doctor@latest
+
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: checkout api repository (contract source)
+        uses: actions/checkout@v4
+        with:
+          repository: GogoYang0/Rustdesk-Control-Panel-API
+          path: rustdesk-control-panel-api
+          token: ${{ secrets.API_REPO_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.22.x"
+          cache: npm
+      - run: npm ci
+      - name: generate client from contract
+        run: bash scripts/gen-api.sh rustdesk-control-panel-api/openapi.yaml
+      - name: fail on drift
+        run: git diff --exit-code -- src/api/generated
